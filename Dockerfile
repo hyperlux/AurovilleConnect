@@ -4,14 +4,14 @@ FROM node:18-alpine
 # Set the working directory
 WORKDIR /app/server
 
-# Copy package.json and package-lock.json
-COPY package*.json ./
+# Copy the server directory
+COPY server/ .
+
+# List files to verify the contents
+RUN ls -la
 
 # Install server dependencies
 RUN npm ci
-
-# Copy the rest of the server code
-COPY . .
 
 # Expose the port the app runs on
 EXPOSE 3000
