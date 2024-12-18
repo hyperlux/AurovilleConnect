@@ -51,13 +51,19 @@ const logger = winston.createLogger({
 let config;
 try {
   config = (process.env.NODE_ENV === 'production')
-    ? require('./config/production.cjs')
-    : require('./config/development.cjs');
-
-  logger.info('Loaded configuration:', { 
-    env: process.env.NODE_ENV,
-    port: config.port,
-    cors: config.cors.origin 
+    ? import('./config/production.cjs')
+    : import('./config/development.cjs');
+  
+  config.then(configModule => {
+    config = configModule.default;
+    logger.info('Loaded configuration:', { 
+      env: process.env.NODE_ENV,
+      port: config.port,
+      cors: config.cors.origin 
+    });
+  }).catch(error => {
+    logger.error('Failed to load configuration:', error);
+    process.exit(1);
   });
 } catch (error) {
   logger.error('Failed to load configuration:', error);
@@ -129,9 +135,9 @@ app.use('/api/users', usersRouter);
 app.use('/api/forums', forumsRouter);
 
 // Import and use other routes
-const { eventsRouter } = await import('./routes/events.js');
-const { servicesRouter } = await import('./routes/services.js');
-const { notificationsRouter } = await import('./routes/notifications.js');
+import { eventsRouter } from './routes/events.js';
+import { servicesRouter } from './routes/services.js';
+import { notificationsRouter } from './routes/notifications.js';
 
 app.use('/api/events', eventsRouter);
 app.use('/api/services', servicesRouter);
