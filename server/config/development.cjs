@@ -6,6 +6,11 @@ module.exports = {
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
   },
+  security: {
+    rateLimiting: true,
+    maxRequests: 100,
+    timeWindow: 15 * 60 * 1000 // 15 minutes
+  },
   db: {
     url: process.env.DATABASE_URL || "postgresql://postgres:password@localhost:5432/auroville"
   }
