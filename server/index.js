@@ -69,6 +69,9 @@ let config;
     process.exit(1);
   }
 
+  // Serve static files from dist directory
+  app.use(express.static(path.join(__dirname, '..', 'dist')));
+
   // CORS configuration
   app.use(cors(config.cors));
 
@@ -127,9 +130,6 @@ let config;
       res.set('Cache-Control', 'public, max-age=31536000');
     }
   }));
-
-  // Serve static files from dist directory
-  app.use(express.static(path.join(__dirname, '..', 'dist')));
 
   // Routes with /api prefix
   app.use('/api/auth', authRouter);
