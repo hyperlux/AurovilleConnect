@@ -128,6 +128,9 @@ let config;
     }
   }));
 
+  // Serve static files from dist directory
+  app.use(express.static(path.join(__dirname, '..', 'dist')));
+
   // Routes with /api prefix
   app.use('/api/auth', authRouter);
   app.use('/api/users', usersRouter);

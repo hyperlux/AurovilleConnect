@@ -1,131 +1,42 @@
 #!/bin/bash
 
-# Log file for deployment (in user's home directory instead of /var/log)
-LOG_FILE="$HOME/auroville-deploy.log"
-
-# Function to log messages
-log_message() {
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_FILE"
-}
-
-# Create log file if it doesn0't exist
-touch "$LOG_FILE"
-
-log_message "Starting deployment process..."
-
-# Pull latest code from main branch
-log_message "Pulling latest code from main branch..."
+echo "[2024-12-18 15:45:25] Starting deployment process..."
+echo "[2024-12-18 15:45:25] Pulling latest code from main branch..."
 git pull origin main
 
-# Function to check service status
-check_service() {
-    if systemctl is-active --quiet $1; then
-        log_message "$1 is running"
-        return 0
-    else
-        log_message "ERROR: $1 is not running"
-        return 1
-    fi
-}
-
-# Function to check if port is in use
-check_port() {
-    if lsof -i:$1 >/dev/null; then
-        log_message "Port $1 is already in use"
-        return 1
-    fi
-    return 0
-}
-
-# Check required port
-log_message "Checking ports..."
-check_port 5000
-if [ $? -eq 0 ]; then
-    log_message "Port 5000 is available"
+echo "[2024-12-18 15:45:28] Checking ports..."
+if lsof -Pi :5000 -sTCP:LISTEN -t >/dev/null ; then
+  echo "[2024-12-18 15:45:28] Port 5000 is in use"
+  exit 1
 else
-    log_message "Port 5000 is in use. Will attempt to free it."
-    pm2 delete all
-    pm2 kill
+  echo "[2024-12-18 15:45:28] Port 5000 is available"
 fi
 
-# Check PostgreSQL service
-log_message "Checking PostgreSQL service..."
-check_service postgresql
-if [ $? -ne 0 ]; then
-    log_message "PostgreSQL service is not running. Exiting."
-    exit 1
-fi
-
-# Check Nginx service
-log_message "Checking Nginx service..."
-check_service nginx
-if [ $? -ne 0 ]; then
-    log_message "Nginx service is not running. Exiting."
-    exit 1
-fi
-
-# Install/update dependencies
-log_message "Installing dependencies..."
-export NODE_OPTIONS="--max-old-space-size=4096"
-npm install
-if [ $? -ne 0 ]; then
-    log_message "Failed to install frontend dependencies. Exiting."
-    exit 1
-fi
-
-cd server
-npm install
-if [ $? -ne 0 ]; then
-    log_message "Failed to install backend dependencies. Exiting."
-    exit 1
-fi
-cd ..
-
-# Run database migrations
-log_message "Running database migrations..."
-cd server
-npx prisma migrate deploy
-if [ $? -ne 0 ]; then
-    log_message "Failed to run database migrations. Exiting."
-    exit 1
-fi
-cd ..
-
-# Build frontend
-log_message "Building frontend..."
-export $(grep -v '^#' .env | xargs)
-echo "VITE_API_URL: $VITE_API_URL"
-NODE_ENV=production npm run build
-if [ $? -ne 0 ]; then
-    log_message "Frontend build failed. Exiting."
-    exit 1
-fi
-
-# Start backend with node
-log_message "Starting backend service..."
-cd server
-NODE_ENV=production node index.js
-if [ $? -ne 0 ]; then
-    log_message "Failed to start backend service. Exiting."
-    exit 1
-fi
-cd ..
-
-# Verify services are running
-log_message "Verifying services..."
-
-# Check if API is responding
-sleep 5  # Give the API a moment to start
-curl -f http://localhost:5000/health >/dev/null 2>&1
-if [ $? -eq 0 ]; then
-    log_message "API is responding"
+echo "[2024-12-18 15:45:28] Checking PostgreSQL service..."
+if pg_isready -q; then
+  echo "[2024-12-18 15:45:28] postgresql is running"
 else
-    log_message "API is not responding. Deployment may have failed."
-    exit 1
+  echo "[2024-12-18 15:45:28] postgresql is not running"
+  exit 1
 fi
 
-log_message "Deployment completed successfully!"
+echo "[2024-12-18 15:45:28] Checking Nginx service..."
+if systemctl is-active --quiet nginx; then
+  echo "[2024-12-18 15:45:28] nginx is running"
+else
+  echo "[2024-12-18 15:45:28] nginx is not running"
+  exit 1
+fi
 
-# Display status
-pm2 status
-exit 0
+echo "[2024-12-18 15:45:28] Installing dependencies..."
+npm install --prefix server
+npm install
+
+echo "[2024-12-18 15:45:31] Running database migrations..."
+npx prisma migrate deploy --schema=server/prisma/schema.prisma
+
+echo "[2024-12-18 15:45:33] Building frontend..."
+VITE_API_URL=http://localhost:5000/api npm run build --prefix frontend
+
+echo "[2024-12-18 15:46:07] Starting backend service..."
+NODE_ENV=production npm start --prefix server
