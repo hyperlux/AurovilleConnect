@@ -37,6 +37,8 @@ npx prisma migrate deploy --schema=server/prisma/schema.prisma
 
 echo "[2024-12-18 15:45:33] Building frontend..."
 VITE_API_URL=http://localhost:5000/api npm run build --prefix frontend
+echo "[2024-12-18 15:46:07] Copying build output to server's web root..."
+cp -r frontend/dist/* /var/www/auroville.social/public/
 
 echo "[2024-12-18 15:46:07] Starting backend service..."
 NODE_ENV=production npm start --prefix server
