@@ -37,7 +37,12 @@ npx prisma migrate deploy --schema=server/prisma/schema.prisma
 
 echo "[2024-12-18 15:45:33] Building frontend..."
 VITE_API_URL=https://api.auroville.social npm run build
-cp src/service-worker.js dist/
+
+# Create public directory if it doesn't exist
+sudo mkdir -p /var/www/auroville.social/public/
+
+# Copy service worker from public directory where it's likely to be
+cp public/service-worker.js dist/
 cp -r dist/* /var/www/auroville.social/public/
 
 echo "[2024-12-18 15:46:07] Starting backend service..."
